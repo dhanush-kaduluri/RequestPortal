@@ -1,0 +1,19 @@
+{
+    "welcomeFile": "prapp/webapp/",
+    "authenticationMethod": "route",
+    "sessionTimeout": 100,
+    "pluginMetadataEndpoint": "/metadata",
+    "routes": [
+      {
+        "source": "^/prapp/webapp/(.*)",
+        "target": "$1",
+        "localDir": "prapp/webapp/",
+        "authenticationType": "none"
+      },
+      {
+        "source": "^/(.*)$",
+        "destination": "srv-api",
+        "authenticationType": "none"
+      }
+    ]
+  }
