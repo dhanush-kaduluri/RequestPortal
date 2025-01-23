@@ -1,5 +1,45 @@
 {
-  "scopes": [],
+  "tenant-mode": "dedicated",
+  "scopes": [
+    {
+      "name": "$XSAPPNAME.User",
+      "description": "User"
+    },
+    {
+      "name": "$XSAPPNAME.Admin",
+      "description": "Admin"
+    },
+    {
+      "name": "$XSAPPNAME.Approver",
+      "description": "Approver"
+    }
+  ],
   "attributes": [],
-  "role-templates": []
+  "role-templates": [
+    {
+      "name": "Admin",
+      "scope-references": [ "$XSAPPNAME.Admin" ],
+      "description": "Role for users with administrative privileges."
+    },
+    {
+      "name": "User",
+      "scope-references": [ "$XSAPPNAME.User" ],
+      "description": "Role for users with standard access to application features."
+    },
+    {
+      "name": "Approver",
+      "scope-references": [ "$XSAPPNAME.Approver" ],
+      "description": "Role for users responsible for approving workflows or requests."
+    }
+  ],
+  "authorities": [
+    "$ACCEPT_GRANTED_AUTHORITIES"
+  ],
+  "oauth2-configuration": {
+    "token-validity": 9000,
+    "redirect-uris": [
+      "https://*.cfapps.us10.hana.ondemand.com/login/callback"
+    ]
+  },
+  "xsenableasyncservice": "true"
 }

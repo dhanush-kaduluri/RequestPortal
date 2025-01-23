@@ -147,7 +147,7 @@ annotate service.Item with @(
             },
             {
                 $Type : 'UI.DataField',
-                Value : plant_ProductPlant,
+                Value : plant_ID,
                 Label : 'Plant',
             },
             {
@@ -192,7 +192,7 @@ annotate service.Item with {
     );
 
     plant @(
-        Common.Text: plant.ProductPlant, // Display field for value help
+        Common.Text: plant.ID, // Display field for value help
         ValueList.entity: RequisitionService.Plant, // Source entity for value help
         ValueList.Label: 'Select Plant' // Title for value help dialog
     );
@@ -218,11 +218,7 @@ annotate service.Plant with @(
     UI.Identification: [
         {
             $Type: 'UI.DataField',
-            Value: Product
-        },
-        {
-            $Type: 'UI.DataField',
-            Value: ProductPlant
+            Value: ID
         }
     ]
 );

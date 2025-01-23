@@ -15,28 +15,48 @@ module.exports = cds.service.impl(async function () {
       return externalService.run(req.query);
     }); 
     
-    this.after(['CREATE','UPDATE'], PurchaseRequisition, async (req) => {
-  
-      const ID = req.ID;
+    this.after('UPDATE', Item.drafts, async (req) => {
 
-      const items = await SELECT.from(Item)
+      let lv_unitPrice,lv_quantity;
+
+      if('unitPrice' in req){
+        lv_unitPrice = req.unitPrice;
+        let result = await SELECT.from(Item.drafts)
+          .columns('quantity')
+          .where({ ID: req.ID });
+        lv_quantity=result[0]?.quantity || 0;
+      }else if('quantity' in req){
+        lv_quantity = req.quantity;
+        let result = await SELECT.from(Item.drafts)
+          .columns('unitPrice')
+          .where({ ID: req.ID });
+        lv_unitPrice = result[0]?.unitPrice || 0;
+      }   
+      
+      if(lv_quantity && lv_unitPrice){
+
+        const req_ID = await SELECT.from(Item.drafts)
+          .columns('requisition_ID')
+          .where({ ID: req.ID });
+
+          
+        const items = await SELECT.from(Item.drafts)
         .columns('unitPrice', 'quantity')
-        .where({ requisition_ID: ID });
-      
+        .where({ requisition_ID: req_ID[0].requisition_ID });
 
-      const totalPrice = items.reduce((sum, item) => {
-        const itemTotal = (item.unitPrice || 0) * (item.quantity || 0);
-        return sum + itemTotal;
-      }, 0);
-
-      // req.totalPrice=totalPrice;
-      
-      
-      await UPDATE(PurchaseRequisition, ID).with({ totalPrice: totalPrice });
+        let totalPrice = items.reduce((sum, item) => {
+          const itemTotal = (item.unitPrice || 0) * (item.quantity || 0); 
+          return sum + itemTotal;
+        }, 0);
+        
+        await UPDATE(PurchaseRequisition.drafts, req_ID[0].requisition_ID).with({ totalPrice: totalPrice });
+   
+      }
   
     });
 
     this.before('CREATE', PurchaseRequisition, async (req) => {
+
       const existingRecords = await cds.run(
           SELECT.from(PurchaseRequisition).columns('requestNo')
       );
@@ -70,12 +90,11 @@ module.exports = cds.service.impl(async function () {
       }
   });
 
-  this.before('CREATE', Attachments.drafts, req => {
-      req.data.url = `PurchaseRequisition(ID=${req.data.requisition_ID},IsActiveEntity=true)/Attachments(ID=${req.data.ID},IsActiveEntity=true)/content`
-  })
+  // this.before('CREATE', Attachments.drafts, req => {
+  //     req.data.url = `PurchaseRequisition(ID=${req.data.requisition_ID},IsActiveEntity=true)/Attachments(ID=${req.data.ID},IsActiveEntity=true)/content`
+  // })
 
   this.before('CREATE', Item.draft, async (req) => {
-    console.log(req.data);
     
     const existingRecords = await cds.run(
       SELECT.from(Item).columns('itemNo').where({ requisition_ID: req.data.requisition_ID })
@@ -89,8 +108,14 @@ module.exports = cds.service.impl(async function () {
     req.data.itemNo = maxNumber + 10;
   });
 
+  this.after('CREATE', PurchaseRequisition, async (req) => {
+    
+    await UPDATE(PurchaseRequisition).set({ status: 'S' }).where({ ID: req.ID });
+    
+  });
+
   this.after('UPDATE', PurchaseRequisition, async (req) => {
-    console.log(req);
+    // console.log(req);
 
     const remainingRecords = await cds.run(
       SELECT.from(Item)
@@ -110,23 +135,67 @@ module.exports = cds.service.impl(async function () {
   });
 
 
-  this.on('sendForApproval',(req)=>{
-    console.log("sent for approval");
-    console.log(req.params[0].ID);
+  this.on('sendForApproval',async (req)=>{
+    console.log("send for approval",req.params);
+    
+    const reqObj = await SELECT.one.from(PurchaseRequisition).where({ ID: req.params[0].ID })
+    const requestItems = await SELECT`itemNo as ItemNo, itemDesc as ItemDesc, quantity as Quantity, unitPrice as ItemPrice, material_ID as Material, plant_ID as Plant`.from(Item).where({ requisition_ID: req.params[0].ID })
+    var query0 = UPDATE(PurchaseRequisition).set({ status: 'I' }).where({ ID: req.params[0].ID });
+    const updateStatus = await cds.tx(req).run(query0);
+    //*Change Status to inApproval
+
+    for (let item of requestItems) {
+      item.ItemPrice = Number(item.ItemPrice);
+      item.Quantity = Number(item.Quantity);
+    }
+
+    req.data = {
+      "definitionId": "us10.buyerportalpoc-aeew31u1.projectfordirectrequisition.approval_Process",
+      "context": {
+      "request": {
+          "Requests": {
+            "requestno": reqObj.requestNo,
+            "requestdesc": reqObj.description,
+            "requestby": reqObj?.createdBy || "",
+            "requestid": reqObj.ID,
+            "totalprice": Number(reqObj.totalPrice),
+            "requestitem": requestItems
+          }
+        }
+      }
+    };
+    
+
+    const WF_API = await cds.connect.to('direct_req_wf_api');
+    const result = await WF_API.send('POST', '/public/workflow/rest/v1/workflow-instances', req.data);
+
+    if (result.status) {
+      req.info(`Workflow triggered successfully for Request ID: ${reqObj.ID};\n ` +
+                `Flow Status: ${result.status};\n ` +
+                `Total Price: ${reqObj.totalPrice}`);
+    } else {
+        req.error(500, "Failed to trigger the workflow");
+    }
+    
+    return result;
+  });
+
+  this.on('ApproveRequest',async (req)=>{
+    const ID = req.params[0].ID;
+   
+    await UPDATE(PurchaseRequisition, ID).with({ status: "O" });
+   
     return {};
   });
 
-  this.on('updateStatus',async (req)=>{
-    console.log("sent for approval");
+  this.on('RejectRequest',async (req)=>{
     const ID = req.params[0].ID;
-    const status = req.params[0].status;
-    if(status == "O" || status == "A" || status == "Approved"){
-      await UPDATE(PurchaseRequisition, ID).with({ status: "O" });
-    }else{
-      await UPDATE(PurchaseRequisition, ID).with({ status: "R" });
-    }
+   
+    await UPDATE(PurchaseRequisition, ID).with({ status: "R" });
+   
     return {};
   });
+
 });
 
 

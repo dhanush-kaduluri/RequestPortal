@@ -9,6 +9,7 @@
     "@cap-js-community/odata-v2-adapter": "^1.13.8",
     "@cap-js/attachments": "^1.1.8",
     "@cap-js/hana": "^1",
+    "@cap-js/sdm": "^1.2.2",
     "@sap-cloud-sdk/http-client": "^3.25.0",
     "@sap-cloud-sdk/resilience": "^3.25.0",
     "@sap/cds": "^8",
@@ -29,13 +30,26 @@
   ],
   "cds": {
     "requires": {
-      "auth": "dummy",
+      "db": "hana",
+      "auth": "xsuaa",
       "OP_API_PRODUCT_SRV_0001": {
         "kind": "odata",
         "model": "srv/external/OP_API_PRODUCT_SRV_0001",
         "credentials": {
           "destination": "S4H",
           "path": "/sap/opu/odata/sap/API_PRODUCT_SRV"
+        }
+      },
+      "direct_req_wf_api": {
+        "kind": "rest",
+        "credentials": {
+          "destination": "WFDestination"
+        }
+      },
+      "sdm": {
+        "settings": {
+          "destination": "documentManagementDestination",
+          "repositoryId": "4d4ecb70-02a5-44af-bb60-fe18c9e3ef7e"
         }
       },
       "[production]": {

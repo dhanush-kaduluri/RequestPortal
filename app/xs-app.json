@@ -8,12 +8,12 @@
         "source": "^/prapp/webapp/(.*)",
         "target": "$1",
         "localDir": "prapp/webapp/",
-        "authenticationType": "none"
+        "authenticationType": "xsuaa"
       },
       {
         "source": "^/(.*)$",
         "destination": "srv-api",
-        "authenticationType": "none"
+        "authenticationType": "xsuaa"
       }
     ]
   }

@@ -2,7 +2,13 @@ using requisition from '../db/schema';
 
 service RequisitionService @(path : 'RequisitionService') {
     @odata.draft.enabled
-    entity PurchaseRequisition as projection on requisition.PurchaseRequisition{
+    @(
+        Common.SideEffects #triggerActionProperty : {
+			SourceProperties : [Items.quantity,Items.unitPrice],
+			TargetProperties   : ['totalPrice'],
+		}
+    )
+    entity PurchaseRequisition  as projection on requisition.PurchaseRequisition{
         *,
         case status
             when 'I' then 'InApproval'
@@ -24,13 +30,16 @@ service RequisitionService @(path : 'RequisitionService') {
                 'in/status',
             ]
         }
-        action updateStatus(ID:UUID, status:String) returns {};
+        action ApproveRequest(ID:UUID) returns {};
+
+        action RejectRequest(ID:UUID) returns {};
+        
         action sendForApproval() returns {};
     };
     entity Products as projection on requisition.Products;
     entity Plant as projection on requisition.Plant;
     entity Item as projection on requisition.Items;
-    entity Attachments as projection on requisition.Attachments;
+    // entity Attachments as projection on requisition.Attachments;
     entity InternalNotes as projection on requisition.InternalNotes;
     
 };
