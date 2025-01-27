@@ -35,14 +35,15 @@ entity InternalNotes: managed{
     text: String;
 }
 
-
+@cds.odata.valuelist
 entity Products  as projection on external.A_Product{
-    ProductType as ProductType,
-    key Product as ID 
+    key Product as ID,
+    ProductType as ProductType
 }
-
+@cds.odata.valuelist
 entity Plant  as projection on external.A_ProductPlant{
-    key Plant as ID
+    key Plant as ID,
+    CountryOfOrigin as Country
 }
 
 
