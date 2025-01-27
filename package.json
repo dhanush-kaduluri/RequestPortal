@@ -14,7 +14,8 @@
     "@sap-cloud-sdk/resilience": "^3.25.0",
     "@sap/cds": "^8",
     "@sap/xssec": "^4",
-    "express": "^4"
+    "express": "^4",
+    "xml2js": "^0.6.2"
   },
   "devDependencies": {
     "@cap-js/cds-types": "^0.7.0",
@@ -44,6 +45,12 @@
         "kind": "rest",
         "credentials": {
           "destination": "WFDestination"
+        }
+      },
+      "direct_req_cpi": {
+        "kind": "rest",
+        "credentials": {
+          "destination": "IntegrateS4H"
         }
       },
       "sdm": {

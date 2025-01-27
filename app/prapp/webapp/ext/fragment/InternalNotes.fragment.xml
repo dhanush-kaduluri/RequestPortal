@@ -1,0 +1,28 @@
+<core:FragmentDefinition 
+    xmlns:core="sap.ui.core" 
+    xmlns="sap.m" 
+    xmlns:macros="sap.fe.macros"
+>
+    <VBox id="123" core:require="{ handler: 'ust/com/prapp/ext/fragment/InternalNotes'}">
+        <FeedInput
+            post="handler.onPost"
+            class="sapUiSmallMarginTopBottom"
+            id="internalNotesInput"
+            visible="{=${IsActiveEntity} === false ? true : false}"
+        />
+        <List
+            id="internalNotesList"
+            showSeparators="Inner"
+            items="{InternalNotes}"
+        >
+            <FeedListItem id="111"
+                sender="{createdBy}"
+                senderPress="onSenderPress"
+                iconDensityAware="false"
+                timestamp="{createdAt}"
+                text="{text}"
+                convertLinksToAnchorTags="All"
+            />
+        </List>
+    </VBox>
+</core:FragmentDefinition>
