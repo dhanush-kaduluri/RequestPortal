@@ -152,6 +152,20 @@
                     "route": "PurchaseRequisition_ItemsObjectPage"
                   }
                 }
+              },
+              "content": {
+                "body": {
+                  "sections": {
+                    "InternalNotes": {
+                      "template": "ust.com.prapp.ext.fragment.InternalNotes",
+                      "position": {
+                        "placement": "After",
+                        "anchor": "OrderItems"
+                      },
+                      "title": "Internal Notes"
+                    }
+                  }
+                }
               }
             }
           }

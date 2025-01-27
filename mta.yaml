@@ -46,7 +46,7 @@ modules:
       - name: PurchaseRequisition-db
       - name: PurchaseRequisition-connectivity
       - name: PurchaseRequisition-auth
-      - name: sdm-di-instance
+      - name: documentManagementInstance
 
   - name: PurchaseRequisition-db-deployer
     type: hdb
@@ -81,8 +81,8 @@ resources:
       path: ./xs-security.json
       service: xsuaa
       service-plan: application
-  - name: sdm-di-instance
+  - name: documentManagementInstance
     type: org.cloudfoundry.managed-service
     parameters:
-        service: sdm
-        service-plan: standard
+      service: sdm
+      service-plan: standard

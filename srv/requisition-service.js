@@ -1,4 +1,5 @@
 const cds = require('@sap/cds');
+const xml2js = require("xml2js");
 
 module.exports = cds.service.impl(async function () {
     const externalService = await cds.connect.to('OP_API_PRODUCT_SRV_0001');
@@ -90,9 +91,6 @@ module.exports = cds.service.impl(async function () {
       }
   });
 
-  // this.before('CREATE', Attachments.drafts, req => {
-  //     req.data.url = `PurchaseRequisition(ID=${req.data.requisition_ID},IsActiveEntity=true)/Attachments(ID=${req.data.ID},IsActiveEntity=true)/content`
-  // })
 
   this.before('CREATE', Item.draft, async (req) => {
     
@@ -136,9 +134,11 @@ module.exports = cds.service.impl(async function () {
 
 
   this.on('sendForApproval',async (req)=>{
-    console.log("send for approval",req.params);
-    
     const reqObj = await SELECT.one.from(PurchaseRequisition).where({ ID: req.params[0].ID })
+    if(reqObj.status === 'O'){
+      req.info("Request is Already Ordered :",req.params[0].ID);
+      return {};
+    }
     const requestItems = await SELECT`itemNo as ItemNo, itemDesc as ItemDesc, quantity as Quantity, unitPrice as ItemPrice, material_ID as Material, plant_ID as Plant`.from(Item).where({ requisition_ID: req.params[0].ID })
     var query0 = UPDATE(PurchaseRequisition).set({ status: 'I' }).where({ ID: req.params[0].ID });
     const updateStatus = await cds.tx(req).run(query0);
@@ -177,12 +177,50 @@ module.exports = cds.service.impl(async function () {
         req.error(500, "Failed to trigger the workflow");
     }
     
-    return result;
+    return {};
+    
   });
 
   this.on('ApproveRequest',async (req)=>{
     const ID = req.params[0].ID;
-   
+    const reqObj = await SELECT.one.from(PurchaseRequisition).where({ ID: ID })
+    const requestItems = await SELECT`itemNo as itemno, itemDesc as itemdescr, quantity, unitPrice as unitprice, material_ID as material, plant_ID as plant`.from(Item).where({ requisition_ID: ID })
+
+    for (const item of requestItems) {
+      item.uom = "EA"; 
+      item.PurchasingGroup = "001"; 
+      item.netprice = String(Math.ceil(item.quantity * item.unitprice)); 
+      item.quantity = Number(item.quantity);
+      item.unitprice=String(Math.ceil(item.unitprice));
+    };
+
+    const payload = {
+      "reqdesc": reqObj.description,
+      "reqtype": "NB",
+      "items":requestItems
+    }
+
+    const CPI_API = await cds.connect.to('direct_req_cpi');
+    const result = await CPI_API.send('POST', '/direct/requisition', payload);
+
+    //parsing the response from xml to json
+    const parser = new xml2js.Parser();
+    let parsedData;
+
+    parser.parseString(result, (err, result) => {
+      if (err) {
+        console.error("Error parsing XML:", err);
+        return;
+      }
+
+      parsedData = result;
+    });
+    
+    setTimeout( async () => {
+      const purchaseRequisition =parsedData.A_PurchaseRequisitionHeader.A_PurchaseRequisitionHeaderType[0].PurchaseRequisition[0];
+      await UPDATE(PurchaseRequisition, ID).with({ PRNumber: purchaseRequisition });
+    }, 100);
+
     await UPDATE(PurchaseRequisition, ID).with({ status: "O" });
    
     return {};

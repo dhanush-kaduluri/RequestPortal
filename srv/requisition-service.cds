@@ -1,6 +1,12 @@
 using requisition from '../db/schema';
+using { Attachments } from '@cap-js/sdm';
+
+
+
 
 service RequisitionService @(path : 'RequisitionService') {
+
+    extend requisition.PurchaseRequisition with { Attachments: Composition of many Attachments }
     @odata.draft.enabled
     @(
         Common.SideEffects #triggerActionProperty : {
@@ -8,7 +14,21 @@ service RequisitionService @(path : 'RequisitionService') {
 			TargetProperties   : ['totalPrice'],
 		}
     )
-    entity PurchaseRequisition  as projection on requisition.PurchaseRequisition{
+    entity PurchaseRequisition @(restrict: [
+    {
+    grant: '*',
+    to   : 'Admin'
+    },
+    {
+    grant: '*',
+    to   : 'User',
+    where: 'createdBy = $user'
+    },
+    {
+    grant: 'READ',
+    to   : 'Approver'
+    }
+]) as projection on requisition.PurchaseRequisition{
         *,
         case status
             when 'I' then 'InApproval'
@@ -39,7 +59,6 @@ service RequisitionService @(path : 'RequisitionService') {
     entity Products as projection on requisition.Products;
     entity Plant as projection on requisition.Plant;
     entity Item as projection on requisition.Items;
-    // entity Attachments as projection on requisition.Attachments;
     entity InternalNotes as projection on requisition.InternalNotes;
     
 };
